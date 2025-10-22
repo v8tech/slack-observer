@@ -1,4 +1,4 @@
-# Slack Message Fetcher & Listener
+# Slack Observer: A Slack Message Fetcher & Listener Example
 
 This repository contains **two example Python scripts** that demonstrate how to interact with the **Slack API** to retrieve and process messages from channels.
 
