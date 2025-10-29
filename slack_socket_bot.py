@@ -3,6 +3,7 @@ import logging
 from dotenv import load_dotenv
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
+import ticket
 
 # -------------------------------------------------------------------
 # Logging configuration
@@ -32,27 +33,24 @@ app = App(token=SLACK_BOT_TOKEN)
 # -------------------------------------------------------------------
 
 @app.message("")
-def handle_message(message, say, logger):
+def handle_message(message, logger):
     """
     Triggered every time a new message is posted in a channel
     where the bot is a member.
     """
+    info = {}
     try:
-        channel_id = message.get("channel", "N/A")
-        message_text = message.get("text", "")
-        timestamp = message.get("ts", "")
-
-        # Log message details
-        print("-" * 60)
-        print(f"Channel:   {channel_id}")
-        print(f"User:      {message.get("user", "N/A")}")
-        print(f"Bot ID:    {message.get('bot_id', 'N/A')}")
-        print(f"Message:   {message_text}")
-        print(f"Timestamp: {timestamp}")
-        print("-" * 60 + "\n")
-
+        info["channel_id"] = message.get("channel", "N/A")
+        info["message_text"] = message.get("text", "")
+        info["timestamp"] = message.get("ts", "")
+        info["user"] = message.get("user", "N/A")
+        info["bot_id"] = message.get("bot_id", "N/A")
     except Exception as e:
         logger.error(f"Error processing message: {e}")
+
+    tk = ticket.Ticket(logger=logger, info=info)
+    tk.create(customer="")
+        
 
 # -------------------------------------------------------------------
 # Start the Slack App
