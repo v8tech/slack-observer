@@ -1,37 +1,22 @@
 import os
 import logging
-from dotenv import load_dotenv
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 import ticket
-
-# -------------------------------------------------------------------
-# Logging configuration
-# -------------------------------------------------------------------
+from dotenv import load_dotenv
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
-
-# -------------------------------------------------------------------
-# Slack Token Configuration
-# -------------------------------------------------------------------
-
-# It's strongly recommended to store your tokens in environment variables
 SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")   # Bot token (starts with xoxb-)
 SLACK_APP_TOKEN = os.getenv("SLACK_APP_TOKEN")   # App-level token (starts with xapp-)
-ALLOWED_BOT_IDS = os.getenv("ALLOWED_BOT_IDS", "").split(",")
+ALLOWED_BOT_IDS = str(os.getenv("ALLOWED_BOT_IDS")).split(",")
 
 if not SLACK_BOT_TOKEN or not SLACK_APP_TOKEN:
     logger.error("Environment variables SLACK_BOT_TOKEN and SLACK_APP_TOKEN are not set.")
     exit(1)
 
-# Initialize Slack Bolt app
 app = App(token=SLACK_BOT_TOKEN)
-
-# -------------------------------------------------------------------
-# Message Event Listener
-# -------------------------------------------------------------------
 
 @app.message("")
 def handle_message(message, logger):
@@ -51,10 +36,6 @@ def handle_message(message, logger):
     }
     tk = ticket.Ticket(logger=logger, info=info)
     tk.create(customer="Metlife")
-
-# -------------------------------------------------------------------
-# Start the Slack App
-# -------------------------------------------------------------------
 
 if __name__ == "__main__":
     print("⚡ Starting Slack bot using Socket Mode...")
