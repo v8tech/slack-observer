@@ -48,10 +48,17 @@ class Ticket:
     def create(self, customer, retry=2):
         self.logger.info(f"Iniciando criação do ticket!")
         
+        body_text = self.info.get("message_text", "").encode("utf-8", errors="ignore").decode("utf-8")
+        body_html = f"""
+        <b>Canal:</b> {self.info.get('channel_id', '')}<br>
+        <b>Usuário:</b> {self.info.get('user', '')}<br>
+        <b>Bot ID:</b> {self.info.get('bot_id', '')}<br>
+        <b>Mensagem:</b> {body_text}
+        """
         data = {
             'SessionID': self.Token,
             'Ticket':  {
-                'Title': f"[{str(customer).upper()}] - Testando",
+                'Title': f"[{str(customer).upper()}] - {body_text[:50]}",
                 'Type': "Incidente",
                 'Queue': "Triagem_Monitoramento_Testes",
                 'Lock': "unlock",
@@ -67,8 +74,8 @@ class Ticket:
                 'IsVisibleForCustomer': 1,
                 'From': "zabbix@v8.tech",
                 'To': customer,
-                'Subject': f"[{str(customer).upper()}] - Testando",
-                'Body': json.dumps(self.info),
+                'Subject': f"[{str(customer).upper()}] - {body_text[:50]}",
+                'Body': body_html,
                 'MimeType': "text/html",
                 'Charset': "UTF-8",
                 'TimeUnit': "0"
