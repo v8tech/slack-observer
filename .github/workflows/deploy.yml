@@ -30,4 +30,4 @@ jobs:
         context: .
         file: ./dockerfile
         push: true
-        tags: ${{ steps.vars.outputs.tags }}
+        tags: ghcr.io/v8tech/slack-observer:latest
