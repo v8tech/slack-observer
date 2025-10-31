@@ -79,7 +79,7 @@ class Ticket:
             "Ticket": {
                 "Title": f"[{str(customer).upper()}] - {title_preview}",
                 "Type": "Incidente",
-                "Queue": "Triagem_Monitoramento_Testes",
+                "Queue": "Metlife - Slack",
                 "Lock": "unlock",
                 "ServiceID": 290,
                 "PriorityID": 1,
