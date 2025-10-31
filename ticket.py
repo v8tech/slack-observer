@@ -49,36 +49,54 @@ class Ticket:
         self.logger.info(f"Iniciando criação do ticket!")
         
         body_text = self.info.get("message_text", "").encode("utf-8", errors="ignore").decode("utf-8")
-        body_html = f"""
-        <b>Canal:</b> {self.info.get('channel_id', '')}<br>
-        <b>Usuário:</b> {self.info.get('user', '')}<br>
-        <b>Bot ID:</b> {self.info.get('bot_id', '')}<br>
-        <b>Mensagem:</b> {body_text}
-        """
+        parsed = self.info.get("parsed_fields", {})
+
+        if parsed:
+            order = ["Título", "Site", "Descrição", "Informador", "Responsables", "Responsáveis", "Responsables:", "Responsáveis:"]
+            body_lines = []
+            used = set()
+            for k in order:
+                if k in parsed:
+                    v = parsed[k]
+                    body_lines.append(f"<b>{k}:</b> {v}<br>")
+                    used.add(k)
+            for k, v in parsed.items():
+                if k in used:
+                    continue
+                body_lines.append(f"<b>{k}:</b> {v}<br>")
+            body_html = "\n".join(body_lines)
+        else:
+            body_html = f"<b>Mensagem:</b> {body_text}"
+
+        title_preview = None
+        if parsed and parsed.get("Título"):
+            title_preview = parsed.get("Título")
+        else:
+            title_preview = (body_text.replace("\n", " "))[:50]
+
         data = {
-            'SessionID': self.Token,
-            'Ticket':  {
-                'Title': f"[{str(customer).upper()}] - {body_text[:50]}",
-                'Type': "Incidente",
-                'Queue': "Triagem_Monitoramento_Testes",
-                'Lock': "unlock",
-                'ServiceID': 290,
-                #'Orientation': options.orientation,
-                'PriorityID': 1,
-                'State': "open",
-                'CustomerUser': customer,
-                'Owner': "root@localhost"
+            "SessionID": self.Token,
+            "Ticket": {
+                "Title": f"[{str(customer).upper()}] - {title_preview}",
+                "Type": "Incidente",
+                "Queue": "Triagem_Monitoramento_Testes",
+                "Lock": "unlock",
+                "ServiceID": 290,
+                "PriorityID": 1,
+                "State": "open",
+                "CustomerUser": customer,
+                "Owner": "root@localhost",
             },
-            'Article': {
-                'SenderType': "agent",
-                'IsVisibleForCustomer': 1,
-                'From': "zabbix@v8.tech",
-                'To': customer,
-                'Subject': f"[{str(customer).upper()}] - {body_text[:50]}",
-                'Body': body_html,
-                'MimeType': "text/html",
-                'Charset': "UTF-8",
-                'TimeUnit': "0"
+            "Article": {
+                "SenderType": "agent",
+                "IsVisibleForCustomer": 1,
+                "From": "zabbix@v8.tech",
+                "To": customer,
+                "Subject": f"[{str(customer).upper()}] - {title_preview}",
+                "Body": body_html,
+                "MimeType": "text/html",
+                "Charset": "UTF-8",
+                "TimeUnit": "0",
             },
         }
 
@@ -88,7 +106,7 @@ class Ticket:
         if (ticket.status_code == 500 and retry > 0):
             self.logger.critical(f" Erro [CODE: {ticket.status_code}] na criação do ticket: {ticket.text} -- Tentativas: {3-retry}")
             time.sleep(3)
-            self.create(options, retry-1)
+            self.create(customer, retry-1)
         if (ticket.status_code != 200):
             self.logger.critical(f"Erro [CODE: {ticket.status_code}] na criação do ticket: {ticket.text}")
             raise Exception(ticket.text)

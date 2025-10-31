@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -18,6 +19,28 @@ if not SLACK_BOT_TOKEN or not SLACK_APP_TOKEN:
 
 app = App(token=SLACK_BOT_TOKEN)
 
+USER_MENTION_RE = re.compile(r"<@([A-Z0-9]+)>", re.I)
+
+def resolve_user_name(user_id):
+    try:
+        resp = app.client.users_info(user=user_id)
+        if resp.get("ok"):
+            profile = resp["user"]["profile"]
+            return profile.get("display_name") or profile.get("real_name") or resp["user"].get("name")
+    except Exception as e:
+        logger.warning(f"It was not possible to resolve the name of {user_id}: {e}")
+    return user_id
+
+def parse_key_values(text):
+    pattern = re.compile(r"\*(?P<key>[^*]+):\*\s*(?P<value>.*?)(?=(\*\w+?:\*)|$)", re.S)
+    result = {}
+    for match in pattern.finditer(text):
+        key = match.group("key").strip()
+        value = match.group("value").strip()
+        if key and value:
+            result[key] = value
+    return result
+
 @app.message("")
 def handle_message(message, logger):
     """
@@ -27,12 +50,22 @@ def handle_message(message, logger):
     bot_id = message.get("bot_id")
     if bot_id not in ALLOWED_BOT_IDS:
         return
+    
+    text = message.get("text", "") or ""
+
+    mention_ids = USER_MENTION_RE.findall(text)
+    for uid in mention_ids:
+        name = resolve_user_name(uid)
+        text = text.replace(f"<@{uid}>", f"@{name}")
+
+    parsed_fields = parse_key_values(text)
+    informador = parsed_fields.get("Informador", "").replace("@", "").strip() or "Desconhecido"
+    
     info = {
-        "channel_id": message.get("channel", "N/A"),
-        "message_text": message.get("text", "").encode("utf-8", errors="ignore").decode("utf-8"),
+        "message_text": text.encode("utf-8", errors="ignore").decode("utf-8"),
         "timestamp": message.get("ts", ""),
-        "user": message.get("user", "N/A"),
-        "bot_id": bot_id,
+        "user": informador,
+        "parsed_fields": parsed_fields
     }
     tk = ticket.Ticket(logger=logger, info=info)
     tk.create(customer="Metlife")
